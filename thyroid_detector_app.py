@@ -7,7 +7,7 @@ import numpy as np
 def load_model():
     try:
         # Attempt to load the model using pickle
-        with open('best_model.pkl', 'rb') as f:
+        with open('best_model (1).pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except (FileNotFoundError, pickle.UnpicklingError) as e:
