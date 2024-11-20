@@ -1,31 +1,49 @@
 import streamlit as st
 import pickle
 import numpy as np
-import os
+import joblib
 
-# Load the saved model
-@st.cache_resource
+# Attempt to load the model using pickle, then fallback to joblib if that fails.
 def load_model():
     try:
-        with open('best_model (1).pkl', 'rb') as f:  # Use 'rb' mode to read the model
+        # Try loading with pickle first
+        with open('best_model.pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except (FileNotFoundError, pickle.UnpicklingError) as e:
-        st.error(f"Error loading the model: {e}")
+        st.error(f"Error loading the model with pickle: {e}")
+        return None
+    except Exception as e:
+        st.error(f"An unexpected error occurred while loading the model: {e}")
         return None
 
+# Uncomment the following if the model was saved using joblib instead:
+# def load_model():
+#     try:
+#         # Try loading with joblib
+#         model = joblib.load('best_model.pkl')
+#         return model
+#     except (FileNotFoundError, joblib.externals.loky.process_executor.BrokenProcessPool) as e:
+#         st.error(f"Error loading the model with joblib: {e}")
+#         return None
+#     except Exception as e:
+#         st.error(f"An unexpected error occurred while loading the model: {e}")
+#         return None
+
+# Load model
 model = load_model()
 
-# If the model failed to load, stop execution
 if model is None:
-    st.stop()
+    st.stop()  # Stop execution if the model couldn't be loaded.
 
+# Streamlit page configuration
 st.set_page_config(page_title="Thyroid Detection", page_icon="🩺", layout="wide")
 
+# Custom CSS for the app
 st.markdown("""
 <style>
 .stApp {
-    background-color: rgb(541, 129, 123);
+    background-color: rgb(241, 129, 123);
     color: rgb(10, 5, 5);
     font-family: 'Roboto', sans-serif;
     font-size: 20px;
@@ -33,11 +51,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Display an image
 st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoGu43I5JdP_y2YTXS_QobRhRPeymZSjnqDA&usqp=CAU", use_column_width=True)
 
+# Title of the app
 st.title("Thyroid Detection")
 
-# Create form inputs
+# Create form inputs for user to enter data
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -74,13 +94,37 @@ with col3:
     FTI = st.number_input("Free Thyroxine Index (FTI)", min_value=2.0, max_value=395.0, step=0.1)
     TBG = st.number_input("TBG Level", min_value=0.0, max_value=100.0, step=0.1)
 
+# Prediction button
 if st.button("Predict"):
-    features = np.array([[age, sex, on_thyroxine, query_on_thyroxine, on_antithyroid_medication, sick, pregnant,
-                          thyroid_surgery, I131_treatment, query_hypothyroid, query_hyperthyroid, lithium, goitre,
-                          tumor, hypopituitary, psych, TSH_measured, T3_measured, TT4_measured, T4U_measured,
-                          FTI_measured, TBG_measured, TSH, T3, TT4, T4U, FTI, TBG]])
+    features = np.array([[age, sex, on_thyroxine, query_on_thyroxine, on_antithyroid_medication, 
+                          sick, pregnant, thyroid_surgery, I131_treatment, query_hypothyroid, 
+                          query_hyperthyroid, lithium, goitre, tumor, hypopituitary, psych, 
+                          TSH_measured, T3_measured, TT4_measured, T4U_measured, FTI_measured, 
+                          TBG_measured, TSH, T3, TT4, T4U, FTI, TBG]])
+
+    # Make prediction
     prediction = model.predict(features)[0]
+    
+    # Display result
     if prediction == 1:
         st.error("Thyroid disease detected")
     else:
         st.success("No thyroid disease detected")
+
+# Custom button styling
+st.markdown("""
+<style>
+.stButton>button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    font-size: 16pt;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.stButton>button:hover {
+    background-color: #45a049;
+}
+</style>
+""", unsafe_allow_html=True)
