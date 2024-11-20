@@ -1,12 +1,13 @@
 # Import necessary libraries
 import streamlit as st
 import numpy as np
-import joblib
+import pickle
 
 # Function to load the trained model
 def load_model(file_name='best_model.pkl'):
     try:
-        model = joblib.load(file_name)
+        with open(file_name, "rb") as f:
+            model = pickle.load(f)
         return model
     except Exception as e:
         st.error(f"Error loading the model: {e}")
