@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 
 # Function to load the trained model
-def load_model(file_name='best_model.pkl'):
+def load_model(file_name='best_model (1).pkl'):
     try:
         with open(file_name, "rb") as f:
             model = pickle.load(f)
