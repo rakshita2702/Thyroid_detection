@@ -7,7 +7,7 @@ import joblib
 def load_model():
     try:
         # Try loading with pickle first
-        with open('best_model.pkl', 'rb') as f:
+        with open('best_model (1).pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except (FileNotFoundError, pickle.UnpicklingError) as e:
