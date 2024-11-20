@@ -1,95 +1,151 @@
 # Install required libraries
-!pip install catboost lightgbm scikit-learn umap-learn matplotlib seaborn xgboost joblib
+!pip install catboost lightgbm xgboost scikit-learn matplotlib seaborn joblib
 
 # Import necessary libraries
-import time
-import pandas as pd
+import streamlit as st
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
-from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, confusion_matrix
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
-from sklearn.decomposition import PCA
+from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score
 from xgboost import XGBClassifier
 import joblib
 
 # Load and preprocess the dataset
-csv_file_path = "hypothyroid.csv"  # Adjust the file path as needed
-df = pd.read_csv(csv_file_path)
+@st.cache_data
+def load_and_preprocess_data():
+    # Load dataset
+    csv_file_path = "hypothyroid.csv"  # Update path if needed
+    df = pd.read_csv(csv_file_path)
 
-# Remove rows containing missing values ("?")
-df = df[(df != "?").all(axis=1)]
+    # Remove rows containing "?" values
+    df.replace("?", np.nan, inplace=True)
+    df.dropna(inplace=True)
 
-# Map binary columns
-binary_cols = ['on thyroxine', 'query on thyroxine', 'on antithyroid medication',
-               'sick', 'pregnant', 'thyroid surgery', 'I131 treatment',
-               'query hypothyroid', 'query hyperthyroid', 'lithium',
-               'goitre', 'tumor', 'hypopituitary', 'psych', 'TSH measured',
-               'T3 measured', 'TT4 measured', 'T4U measured', 'FTI measured', 'TBG measured']
-for col in binary_cols:
-    df[col] = df[col].map({'t': 1, 'f': 0})
+    # Map binary values
+    binary_cols = [
+        'on thyroxine', 'query on thyroxine', 'on antithyroid medication', 'sick', 
+        'pregnant', 'thyroid surgery', 'I131 treatment', 'query hypothyroid', 
+        'query hyperthyroid', 'lithium', 'goitre', 'tumor', 'hypopituitary', 
+        'psych', 'TSH measured', 'T3 measured', 'TT4 measured', 'T4U measured', 
+        'FTI measured', 'TBG measured'
+    ]
+    for col in binary_cols:
+        df[col] = df[col].map({'t': 1, 'f': 0})
 
-# Encode categorical columns
-df['sex'] = df['sex'].map({'M': 1, 'F': 0})
-df['binaryClass'] = df['binaryClass'].map({'P': 1, 'N': 0})
-df['referral source'] = LabelEncoder().fit_transform(df['referral source'])
+    # Encode categorical values
+    df['sex'] = df['sex'].map({'M': 1, 'F': 0})
+    df['binaryClass'] = df['binaryClass'].map({'P': 1, 'N': 0})
+    df['referral source'] = LabelEncoder().fit_transform(df['referral source'])
 
-# Split data into features (X) and target (y)
-X = df.drop('binaryClass', axis=1)
-y = df['binaryClass']
+    # Split features and target
+    X = df.drop('binaryClass', axis=1)
+    y = df['binaryClass']
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return X, y
 
-# Handle missing values
-imputer = SimpleImputer(strategy='most_frequent')
-X_train = imputer.fit_transform(X_train)
-X_test = imputer.transform(X_test)
+# Preprocess data and split into training/testing sets
+@st.cache_data
+def prepare_data(X, y):
+    # Split into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Standardize the data
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+    # Handle missing values
+    imputer = SimpleImputer(strategy='most_frequent')
+    X_train = imputer.fit_transform(X_train)
+    X_test = imputer.transform(X_test)
 
-# Exploratory Data Analysis (EDA)
-plt.figure(figsize=(6, 4))
-sns.countplot(x='binaryClass', data=df)
-plt.title('Class Distribution')
-plt.show()
+    # Standardize the data
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
-plt.figure(figsize=(6, 6))
-df['binaryClass'].value_counts().plot(kind='pie', autopct='%1.1f%%')
-plt.title('Class Distribution')
-plt.show()
+    return X_train, X_test, y_train, y_test
 
-# Model Training - XGBoost Classifier
-model_xgb = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
-model_xgb.fit(X_train, y_train)
+# Train the XGBoost model
+@st.cache_resource
+def train_xgb_model(X_train, y_train):
+    model_xgb = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
+    model_xgb.fit(X_train, y_train)
+    return model_xgb
 
-# Model Evaluation
-y_pred = model_xgb.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy * 100:.2f}%")
+# Save the trained model
+def save_model(model, file_name='best_model.pkl'):
+    joblib.dump(model, file_name)
 
-# Plotting ROC Curve
-probs = model_xgb.predict_proba(X_test)[:, 1]
-fpr, tpr, thresholds = roc_curve(y_test, probs)
-plt.plot(fpr, tpr, label='XGBoost')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend()
-plt.show()
+# Load the trained model
+@st.cache_resource
+def load_model(file_name='best_model.pkl'):
+    try:
+        return joblib.load(file_name)
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
+        return None
 
-# Save the model
-model_filename = 'xgb_model.pkl'
-joblib.dump(model_xgb, model_filename)
-print(f"Model saved as {model_filename}")
+# Streamlit App
+def main():
+    st.set_page_config(page_title="Thyroid Detection", page_icon="🩺", layout="wide")
 
-# Load the saved model (for verification)
-loaded_model = joblib.load(model_filename)
-y_pred_loaded = loaded_model.predict(X_test)
-accuracy_loaded = accuracy_score(y_test, y_pred_loaded)
-print(f"Accuracy of Loaded Model: {accuracy_loaded * 100:.2f}%")
+    st.title("Thyroid Detection System")
+    st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoGu43I5JdP_y2YTXS_QobRhRPeymZSjnqDA&usqp=CAU", use_column_width=True)
+
+    # Load and preprocess data
+    X, y = load_and_preprocess_data()
+    X_train, X_test, y_train, y_test = prepare_data(X, y)
+
+    # Train or load model
+    model = load_model()
+    if not model:
+        st.warning("Training a new model as no valid model is loaded.")
+        model = train_xgb_model(X_train, y_train)
+        save_model(model)
+
+    # Create user input form
+    st.sidebar.header("Patient Details")
+    user_data = {
+        "Age": st.sidebar.number_input("Age", min_value=1, max_value=100, step=1),
+        "Sex": st.sidebar.selectbox("Sex", options=[0, 1], format_func=lambda x: "Female" if x == 0 else "Male"),
+        "TSH": st.sidebar.number_input("TSH Level", min_value=0.0, max_value=100.0, step=0.1),
+        "T3": st.sidebar.number_input("T3 Level", min_value=0.05, max_value=10.6, step=0.01),
+        "TT4": st.sidebar.number_input("TT4 Level", min_value=3.0, max_value=431.0, step=0.1),
+        "T4U": st.sidebar.number_input("T4U Level", min_value=0.0, max_value=100.0, step=0.1),
+        "FTI": st.sidebar.number_input("Free Thyroxine Index", min_value=2.0, max_value=395.0, step=0.1)
+    }
+
+    # Collect binary features
+    binary_features = {col: st.sidebar.selectbox(f"{col}", options=[0, 1], format_func=lambda x: "No" if x == 0 else "Yes") for col in X.columns if col not in user_data}
+
+    # Combine inputs into a single array
+    input_data = np.array([list(user_data.values()) + list(binary_features.values())])
+
+    # Predict thyroid condition
+    if st.sidebar.button("Predict"):
+        prediction = model.predict(input_data)[0]
+        if prediction == 1:
+            st.error("Thyroid disease detected.")
+        else:
+            st.success("No thyroid disease detected.")
+
+    # Model evaluation
+    st.header("Model Performance")
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    st.write(f"Model Accuracy: {accuracy:.2f}")
+
+    # ROC Curve
+    probs = model.predict_proba(X_test)[:, 1]
+    fpr, tpr, _ = roc_curve(y_test, probs)
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {roc_auc_score(y_test, probs):.2f})")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver Operating Characteristic (ROC) Curve")
+    plt.legend()
+    st.pyplot(plt)
+
+# Run the app
+if __name__ == "__main__":
+    main()
