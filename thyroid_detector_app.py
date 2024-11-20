@@ -17,20 +17,20 @@ def load_model():
         st.error(f"An unexpected error occurred while loading the model: {e}")
         return None
 
-# Uncomment the following if the model was saved using joblib instead:
-# def load_model():
-#     try:
-#         # Try loading with joblib
-#         model = joblib.load('best_model.pkl')
-#         return model
-#     except (FileNotFoundError, joblib.externals.loky.process_executor.BrokenProcessPool) as e:
-#         st.error(f"Error loading the model with joblib: {e}")
-#         return None
-#     except Exception as e:
-#         st.error(f"An unexpected error occurred while loading the model: {e}")
-#         return None
 
-# Load model
+ def load_model():
+     try:
+         # Try loading with joblib
+         model = joblib.load('best_model.pkl')
+         return model
+     except (FileNotFoundError, joblib.externals.loky.process_executor.BrokenProcessPool) as e:
+         st.error(f"Error loading the model with joblib: {e}")
+         return None
+     except Exception as e:
+         st.error(f"An unexpected error occurred while loading the model: {e}")
+         return None
+
+ Load model
 model = load_model()
 
 if model is None:
