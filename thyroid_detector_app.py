@@ -1,15 +1,24 @@
 import streamlit as st
 import pickle
 import numpy as np
+import os
 
 # Load the saved model
 @st.cache_resource
 def load_model():
-    with open('best_model (1).pkl', 'rb') as f:  # Use 'rb' mode to read the model
-        model = pickle.load(f)
-    return model
+    try:
+        with open('best_model (1).pkl', 'rb') as f:  # Use 'rb' mode to read the model
+            model = pickle.load(f)
+        return model
+    except (FileNotFoundError, pickle.UnpicklingError) as e:
+        st.error(f"Error loading the model: {e}")
+        return None
 
 model = load_model()
+
+# If the model failed to load, stop execution
+if model is None:
+    st.stop()
 
 st.set_page_config(page_title="Thyroid Detection", page_icon="🩺", layout="wide")
 
@@ -66,34 +75,12 @@ with col3:
     TBG = st.number_input("TBG Level", min_value=0.0, max_value=100.0, step=0.1)
 
 if st.button("Predict"):
-    features = np.array([[
-        age, sex, on_thyroxine, query_on_thyroxine, on_antithyroid_medication, 
-        sick, pregnant, thyroid_surgery, I131_treatment, query_hypothyroid, 
-        query_hyperthyroid, lithium, goitre, tumor, hypopituitary, psych, 
-        TSH_measured, T3_measured, TT4_measured, T4U_measured, FTI_measured, 
-        TBG_measured, TSH, T3, TT4, T4U, FTI, TBG
-    ]])
-    
+    features = np.array([[age, sex, on_thyroxine, query_on_thyroxine, on_antithyroid_medication, sick, pregnant,
+                          thyroid_surgery, I131_treatment, query_hypothyroid, query_hyperthyroid, lithium, goitre,
+                          tumor, hypopituitary, psych, TSH_measured, T3_measured, TT4_measured, T4U_measured,
+                          FTI_measured, TBG_measured, TSH, T3, TT4, T4U, FTI, TBG]])
     prediction = model.predict(features)[0]
-    
     if prediction == 1:
         st.error("Thyroid disease detected")
     else:
         st.success("No thyroid disease detected")
-
-st.markdown("""
-<style>
-.stButton>button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 15px;
-    font-size: 16pt;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-.stButton>button:hover {
-    background-color: #45a049;
-}
-</style>
-""", unsafe_allow_html=True)
