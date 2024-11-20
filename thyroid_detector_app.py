@@ -3,35 +3,21 @@ import pickle
 import numpy as np
 import joblib
 
-# Attempt to load the model using pickle, then fallback to joblib if that fails.
+# Function to load the model
 def load_model():
     try:
-        # Try loading with pickle first
-        with open('best_model (1).pkl', 'rb') as f:
+        # Attempt to load the model using pickle
+        with open('best_model.pkl', 'rb') as f:
             model = pickle.load(f)
         return model
     except (FileNotFoundError, pickle.UnpicklingError) as e:
         st.error(f"Error loading the model with pickle: {e}")
         return None
     except Exception as e:
-        st.error(f"An unexpected error occurred while loading the model: {e}")
+        st.error(f"Unexpected error while loading the model with pickle: {e}")
         return None
 
-
- def load_model():
-     try:
-         # Try loading with joblib
-         model = joblib.load('best_model.pkl')
-         return model
-     except (FileNotFoundError, joblib.externals.loky.process_executor.BrokenProcessPool) as e:
-         st.error(f"Error loading the model with joblib: {e}")
-         return None
-     except Exception as e:
-         st.error(f"An unexpected error occurred while loading the model: {e}")
-         return None
-     
-
- #Load model
+# Load the model
 model = load_model()
 
 if model is None:
@@ -104,13 +90,14 @@ if st.button("Predict"):
                           TBG_measured, TSH, T3, TT4, T4U, FTI, TBG]])
 
     # Make prediction
-    prediction = model.predict(features)[0]
-    
-    # Display result
-    if prediction == 1:
-        st.error("Thyroid disease detected")
-    else:
-        st.success("No thyroid disease detected")
+    try:
+        prediction = model.predict(features)[0]
+        if prediction == 1:
+            st.error("Thyroid disease detected")
+        else:
+            st.success("No thyroid disease detected")
+    except Exception as e:
+        st.error(f"Error during prediction: {e}")
 
 # Custom button styling
 st.markdown("""
