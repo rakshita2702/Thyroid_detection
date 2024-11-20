@@ -17,7 +17,7 @@ def load_and_preprocess_data():
     csv_file_path = "hypothyroid.csv"  # Update path if needed
     df = pd.read_csv(csv_file_path)
 
-    # Remove rows containing "?" values
+    # Replace "?" with NaN and drop rows with missing values
     df.replace("?", np.nan, inplace=True)
     df.dropna(inplace=True)
 
@@ -32,7 +32,7 @@ def load_and_preprocess_data():
     for col in binary_cols:
         df[col] = df[col].map({'t': 1, 'f': 0})
 
-    # Encode categorical values
+    # Encode categorical variables
     df['sex'] = df['sex'].map({'M': 1, 'F': 0})
     df['binaryClass'] = df['binaryClass'].map({'P': 1, 'N': 0})
     df['referral source'] = LabelEncoder().fit_transform(df['referral source'])
@@ -43,9 +43,9 @@ def load_and_preprocess_data():
 
     return X, y
 
-# Prepare data
+# Preprocess data
 def prepare_data(X, y):
-    # Split into training and testing sets
+    # Split data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Handle missing values
@@ -53,30 +53,25 @@ def prepare_data(X, y):
     X_train = imputer.fit_transform(X_train)
     X_test = imputer.transform(X_test)
 
-    # Standardize the data
+    # Standardize features
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
     return X_train, X_test, y_train, y_test
 
-# Train the XGBoost model
+# Train XGBoost model
 def train_xgb_model(X_train, y_train):
-    model_xgb = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
-    model_xgb.fit(X_train, y_train)
-    return model_xgb
+    model = XGBClassifier(random_state=42, eval_metric='logloss')
+    model.fit(X_train, y_train)
+    return model
 
-# Save the trained model
-def save_model(model, file_name='best_model.pkl'):
-    joblib.dump(model, file_name)
-    print(f"Model saved to {file_name}")
-
-# Main execution for training
+# Main script to train and save the model
 if __name__ == "__main__":
     X, y = load_and_preprocess_data()
     X_train, X_test, y_train, y_test = prepare_data(X, y)
-
     model = train_xgb_model(X_train, y_train)
-    save_model(model)
-    print(f"Training Accuracy: {accuracy_score(y_train, model.predict(X_train)):.2f}")
-    print(f"Test Accuracy: {accuracy_score(y_test, model.predict(X_test)):.2f}")
+
+    # Save model
+    joblib.dump(model, "best_model.pkl")
+    print("Model saved as best_model.pkl")
