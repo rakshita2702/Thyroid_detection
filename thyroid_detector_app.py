@@ -5,9 +5,9 @@ import numpy as np
 # Load the saved model
 @st.cache_resource
 def load_model():
-    with open('best_model (1).pkl', 'wb') as f:
-    pickle.dump(model, f)
-    
+    with open('best_model (1).pkl', 'rb') as f:  # Use 'rb' mode to read the model
+        model = pickle.load(f)
+    return model
 
 model = load_model()
 
