@@ -29,8 +29,9 @@ def load_model():
      except Exception as e:
          st.error(f"An unexpected error occurred while loading the model: {e}")
          return None
+     
 
- Load model
+ #Load model
 model = load_model()
 
 if model is None:
