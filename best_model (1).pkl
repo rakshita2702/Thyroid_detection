@@ -30,7 +30,7 @@ import lightgbm as lgb
 
 #Data Loading and Preprocessing
 
-csv_file_path = "/content/hypothyroid.csv"
+csv_file_path = "/hypothyroid.csv"
 df = pd.read_csv(csv_file_path)
 
 # Remove rows containing "?" values
@@ -177,7 +177,8 @@ probs = model_xgb.predict_proba(X_test)[:, 1]
 fpr, tpr, thresholds = roc_curve(y_test, probs)
 plt.plot(fpr, tpr, label='XGBoost')
 
-#Saving the Model
+from sklearn.externals import joblib  # For compatibility, use the joblib from sklearn or import joblib directly
 
-import joblib
+# Save the trained XGBoost model to a .pkl file
 joblib.dump(model_xgb, 'xgb_model.pkl')
+print("Model saved successfully to 'xgb_model.pkl'")
