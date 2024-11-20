@@ -1,15 +1,15 @@
 # Install required libraries
-!pip install catboost lightgbm xgboost scikit-learn matplotlib seaborn joblib
+!pip install catboost lightgbm xgboost scikit-learn matplotlib seaborn
 
 # Import necessary libraries
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from xgboost import XGBClassifier
-import joblib
 
 # Load and preprocess the dataset
 def load_and_preprocess_data():
@@ -72,6 +72,7 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = prepare_data(X, y)
     model = train_xgb_model(X_train, y_train)
 
-    # Save model
-    joblib.dump(model, "best_model.pkl")
+    # Save model using pickle
+    with open("best_model.pkl", "wb") as f:
+        pickle.dump(model, f)
     print("Model saved as best_model.pkl")
