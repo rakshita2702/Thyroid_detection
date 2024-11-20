@@ -4,14 +4,16 @@ import numpy as np
 import pickle
 
 # Function to load the trained model
-def load_model(file_name='best_model (1).pkl'):
+def load_model(file_name='best_model.pkl'):
     try:
         with open(file_name, "rb") as f:
             model = pickle.load(f)
         return model
     except Exception as e:
         st.error(f"Error loading the model: {e}")
+        st.error(f"Make sure the file '{file_name}' exists and is a valid pickle file.")
         return None
+
 
 # Load the model
 model = load_model()
